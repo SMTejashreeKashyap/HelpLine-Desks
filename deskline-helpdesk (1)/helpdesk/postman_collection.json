@@ -1,0 +1,306 @@
+{
+  "info": {
+    "name": "Deskline Helpdesk API",
+    "description": "Customer Support Helpdesk & Ticketing System — P14 CIA-3 project",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5000/api" },
+    { "key": "token", "value": "" },
+    { "key": "ticketId", "value": "" },
+    { "key": "agentId", "value": "" },
+    { "key": "slaRuleId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Sam Customer\",\n  \"email\": \"customer@helpdesk.io\",\n  \"password\": \"Customer123!\",\n  \"role\": \"customer\"\n}" },
+            "url": { "raw": "{{baseUrl}}/auth/register", "host": ["{{baseUrl}}"], "path": ["auth", "register"] }
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const data = pm.response.json().data;",
+                  "if (data && data.token) pm.collectionVariables.set('token', data.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"customer@helpdesk.io\",\n  \"password\": \"Customer123!\"\n}" },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
+          }
+        },
+        {
+          "name": "Get current user",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/auth/me", "host": ["{{baseUrl}}"], "path": ["auth", "me"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Tickets",
+      "item": [
+        {
+          "name": "Create ticket (customer)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const data = pm.response.json().data;",
+                  "if (data && data._id) pm.collectionVariables.set('ticketId', data._id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"subject\": \"Can't log in to my account\",\n  \"category\": \"Login Issue\",\n  \"priority\": \"High\",\n  \"description\": \"Getting 'invalid credentials' with the correct password since this morning.\"\n}" },
+            "url": { "raw": "{{baseUrl}}/tickets", "host": ["{{baseUrl}}"], "path": ["tickets"] }
+          }
+        },
+        {
+          "name": "List tickets (scoped to role)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/tickets?status=Open", "host": ["{{baseUrl}}"], "path": ["tickets"], "query": [{ "key": "status", "value": "Open" }] }
+          }
+        },
+        {
+          "name": "List breached tickets",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/tickets/breached", "host": ["{{baseUrl}}"], "path": ["tickets", "breached"] }
+          }
+        },
+        {
+          "name": "Get ticket by id",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/tickets/{{ticketId}}", "host": ["{{baseUrl}}"], "path": ["tickets", "{{ticketId}}"] }
+          }
+        },
+        {
+          "name": "Assign ticket (manager)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"agentId\": \"{{agentId}}\"\n}" },
+            "url": { "raw": "{{baseUrl}}/tickets/{{ticketId}}/assign", "host": ["{{baseUrl}}"], "path": ["tickets", "{{ticketId}}", "assign"] }
+          }
+        },
+        {
+          "name": "Update status (agent/manager)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"In Progress\",\n  \"remarks\": \"Reviewed and reproducing the issue\"\n}" },
+            "url": { "raw": "{{baseUrl}}/tickets/{{ticketId}}/status", "host": ["{{baseUrl}}"], "path": ["tickets", "{{ticketId}}", "status"] }
+          }
+        },
+        {
+          "name": "Escalate ticket (agent/manager)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"reason\": \"No response from customer after two follow-ups, nearing SLA breach\"\n}" },
+            "url": { "raw": "{{baseUrl}}/tickets/{{ticketId}}/escalate", "host": ["{{baseUrl}}"], "path": ["tickets", "{{ticketId}}", "escalate"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Comments & Internal Notes",
+      "item": [
+        {
+          "name": "Add reply (customer/agent)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"message\": \"Could you try resetting your password from the login page?\"\n}" },
+            "url": { "raw": "{{baseUrl}}/tickets/{{ticketId}}/comments", "host": ["{{baseUrl}}"], "path": ["tickets", "{{ticketId}}", "comments"] }
+          }
+        },
+        {
+          "name": "Add internal note (agent/manager only)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"message\": \"Checked backend logs — auth service had a brief outage at 09:14.\",\n  \"isInternal\": true\n}" },
+            "url": { "raw": "{{baseUrl}}/tickets/{{ticketId}}/comments", "host": ["{{baseUrl}}"], "path": ["tickets", "{{ticketId}}", "comments"] }
+          }
+        },
+        {
+          "name": "List thread",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/tickets/{{ticketId}}/comments", "host": ["{{baseUrl}}"], "path": ["tickets", "{{ticketId}}", "comments"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Ratings",
+      "item": [
+        {
+          "name": "Rate a resolved/closed ticket (customer)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"score\": 5,\n  \"comment\": \"Fast and friendly resolution.\"\n}" },
+            "url": { "raw": "{{baseUrl}}/tickets/{{ticketId}}/rating", "host": ["{{baseUrl}}"], "path": ["tickets", "{{ticketId}}", "rating"] }
+          }
+        },
+        {
+          "name": "Get rating",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/tickets/{{ticketId}}/rating", "host": ["{{baseUrl}}"], "path": ["tickets", "{{ticketId}}", "rating"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "SLA Rules (Category & Priority Management)",
+      "item": [
+        {
+          "name": "List SLA rules",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/sla-rules", "host": ["{{baseUrl}}"], "path": ["sla-rules"] }
+          }
+        },
+        {
+          "name": "Create SLA rule (manager)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const data = pm.response.json().data;",
+                  "if (data && data._id) pm.collectionVariables.set('slaRuleId', data._id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"category\": \"Login Issue\",\n  \"priority\": \"High\",\n  \"resolutionHours\": 8\n}" },
+            "url": { "raw": "{{baseUrl}}/sla-rules", "host": ["{{baseUrl}}"], "path": ["sla-rules"] }
+          }
+        },
+        {
+          "name": "Update SLA rule (manager)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"resolutionHours\": 6\n}" },
+            "url": { "raw": "{{baseUrl}}/sla-rules/{{slaRuleId}}", "host": ["{{baseUrl}}"], "path": ["sla-rules", "{{slaRuleId}}"] }
+          }
+        },
+        {
+          "name": "Delete SLA rule (manager)",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/sla-rules/{{slaRuleId}}", "host": ["{{baseUrl}}"], "path": ["sla-rules", "{{slaRuleId}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Manager",
+      "item": [
+        {
+          "name": "List agents",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/manager/agents", "host": ["{{baseUrl}}"], "path": ["manager", "agents"] }
+          }
+        },
+        {
+          "name": "Agent workload overview (Module 12)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/manager/agents/workload", "host": ["{{baseUrl}}"], "path": ["manager", "agents", "workload"] }
+          }
+        },
+        {
+          "name": "SLA compliance report (Module 13)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/manager/reports/sla", "host": ["{{baseUrl}}"], "path": ["manager", "reports", "sla"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Agent",
+      "item": [
+        {
+          "name": "My workload (Module 12)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/agents/me/workload", "host": ["{{baseUrl}}"], "path": ["agents", "me", "workload"] }
+          }
+        }
+      ]
+    }
+  ]
+}
